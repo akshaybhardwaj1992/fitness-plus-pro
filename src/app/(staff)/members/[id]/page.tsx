@@ -6,7 +6,7 @@ import { calculateTargets, checkAutoPlanEligibility } from "@/lib/nutrition/calc
 import { checkDietPlan } from "@/lib/nutrition/rules";
 import { suggestTemplate } from "@/lib/workout/templates";
 import {
-  ACTIVITY_LABELS, DIET_LABELS, EXPERIENCE_LABELS, GOAL_LABELS, SEX_LABELS, fmt, fmtDate,
+  ACTIVITY_LABELS, COOKING_LABELS, DIET_LABELS, EXPERIENCE_LABELS, GOAL_LABELS, SEX_LABELS, fmt, fmtDate,
 } from "@/lib/labels";
 import type { PlanRow } from "@/lib/types";
 import { Badge, Card, EmptyState, LinkButton, Notice, PageHeader, Stat, buttonClass } from "@/components/ui";
@@ -83,6 +83,7 @@ export default async function MemberPage({
             <dt className="text-muted">Goal</dt><dd>{GOAL_LABELS[m.goal]}</dd>
             <dt className="text-muted">Activity</dt><dd>{ACTIVITY_LABELS[m.activity_level]}</dd>
             <dt className="text-muted">Workouts</dt><dd>{m.workouts_per_week} per week · {EXPERIENCE_LABELS[m.experience]}</dd>
+            <dt className="text-muted">Cooking</dt><dd>{COOKING_LABELS[m.cooking_style]}</dd>
             <dt className="text-muted">Budget</dt><dd>{m.daily_budget_inr != null ? `₹${fmt(m.daily_budget_inr)} / day` : "No limit"}</dd>
             <dt className="text-muted">Allergies</dt><dd className={m.allergies ? "text-danger" : ""}>{m.allergies || "None"}</dd>
             <dt className="text-muted">Avoid</dt><dd>{m.foods_to_avoid || "—"}</dd>

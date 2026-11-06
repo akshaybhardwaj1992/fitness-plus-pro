@@ -30,7 +30,15 @@ All numbers live in one file: [`src/lib/nutrition/config.ts`](src/lib/nutrition/
 3. Calories: **Mifflin‑St Jeor BMR × activity** (1.2 / 1.375 / 1.55 / 1.725).
    Fat loss −15 % (never deeper than −20 %), muscle gain +10 %, maintenance / general fitness = maintenance.
 4. **Safety floor:** never below **1,200 kcal (women)** / **1,500 kcal (men)**.
-5. Protein 1.6–2.2 g/kg (fat loss, muscle gain) or 1.2–1.6 g/kg (others). Fat 20–30 %. Carbs = the rest.
+5. Protein 1.6–2.2 g/kg (fat loss, muscle gain) or 1.2–1.6 g/kg (others). The target is the **low end**
+   of that range (`proteinTargetPosition` in the config) — the middle (e.g. 173 g for a 91 kg vegetarian)
+   is not reachable from normal Indian vegetarian food. Protein-rich foods are picked first (soya, paneer,
+   moong/masoor dal, curd, sprouts). Fat 20–30 %. Carbs = the rest.
+   **Cooking style** (per member): **Simple** (default) = one dal/curry + one sabzi and one kind of
+   roti/rice per day, eaten at lunch and dinner; snacks and sides need no cooking. **More variety** =
+   different dishes at lunch and dinner.
+   Portions are kitchen-sized: whole rotis (at least 2 per meal above 1,800 kcal), at least 1 katori
+   dal, and every lunch has a sabzi or salad.
 6. 7 days × 6 meals (breakfast, mid‑morning, lunch, pre‑workout, post‑workout, dinner).
    **Rest days** skip pre/post‑workout and spread those calories over the other meals.
 7. Food rules: diet type respected (vegetarian = no meat/fish/egg, vegan = no animal products),
@@ -186,5 +194,8 @@ tests/                 vitest unit tests;  tests/db/ = RLS tests
 
 - Workout templates are defined in code (`src/lib/workout/templates.ts`); plans made from them are fully editable.
 - Sex is male/female only, because the Mifflin‑St Jeor formula needs one of the two.
+- Some combinations (e.g. a heavy vegetarian on fat loss, or vegan + no soy) can fall a little short of
+  the protein target on some days (the 91 kg vegetarian test case averages ~140 g vs 146 g). Whey protein
+  is in the food list but is never added automatically — that is the trainer's decision.
 - Some combinations (e.g. vegan + no soy + low budget) may fall short of the protein target;
   the plan shows a warning so the trainer can adjust.

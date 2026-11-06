@@ -1,7 +1,7 @@
 // Simple form validation. Same rules as the database CHECK constraints,
 // but with plain-language messages. Pure — unit tested.
 import {
-  ACTIVITY_LEVELS, ALLERGEN_TAGS, DIET_TYPES, EXPERIENCES, FOOD_CATEGORIES, FOOD_ROLES, GOALS, MUSCLES, SEXES,
+  ACTIVITY_LEVELS, ALLERGEN_TAGS, COOKING_STYLES, DIET_TYPES, EXPERIENCES, FOOD_CATEGORIES, FOOD_ROLES, GOALS, MUSCLES, SEXES,
 } from "@/lib/types";
 import type { TablesInsert } from "@/lib/database.types";
 
@@ -78,6 +78,7 @@ export function parseMemberForm(f: FormLike): Parsed<Omit<TablesInsert<"members"
     workouts_per_week: c.number("workouts_per_week", "Workouts per week", 0, 7, { int: true }) ?? 0,
     experience: c.choice("experience", "experience", EXPERIENCES),
     diet_type: c.choice("diet_type", "a diet type", DIET_TYPES),
+    cooking_style: c.choice("cooking_style", "a cooking style", COOKING_STYLES),
     allergies: c.text("allergies", "Allergies", { max: 500 }),
     foods_to_avoid: c.text("foods_to_avoid", "Foods to avoid", { max: 500 }),
     daily_budget_inr: c.number("daily_budget_inr", "Daily food budget", 0, 100000, { required: false }),

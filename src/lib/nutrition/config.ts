@@ -29,13 +29,20 @@ export const NUTRITION_RULES = {
   /** Calories never go below these numbers. */
   calorieFloor: { female: 1200, male: 1500 } satisfies Record<Sex, number>,
 
-  /** Protein in grams per kg of body weight: [min, max]. Target = middle. */
+  /** Protein in grams per kg of body weight: [min, max]. */
   proteinGPerKg: {
     fat_loss: [1.6, 2.2],
     muscle_gain: [1.6, 2.2],
     maintenance: [1.2, 1.6],
     general_fitness: [1.2, 1.6],
   } satisfies Record<Goal, [number, number]>,
+
+  /**
+   * Where the protein target sits inside that range: 0 = minimum, 0.5 = middle, 1 = maximum.
+   * The minimum is used because the middle (e.g. 173 g for a 91 kg vegetarian) cannot be
+   * reached from normal Indian vegetarian food without supplements. Trainers can add more.
+   */
+  proteinTargetPosition: 0,
 
   /** Fat as a share of calories: [min, max] and the target. */
   fatShareRange: [0.2, 0.3] as [number, number],
@@ -88,12 +95,13 @@ export const MEAL_PATTERNS: Record<MealSlot, MealComponent[]> = {
   ],
   mid_morning: [
     { role: "snack", required: true },
+    { role: "protein_side", required: false }, // curd / milk / sprouts / paneer — no cooking
     { role: "fruit", required: false },
   ],
   lunch: [
     { role: "staple", required: true },
     { role: "main_dish", required: true },
-    { role: "vegetable", required: false },
+    { role: "vegetable", required: true }, // sabzi or salad — every day needs vegetables
     { role: "side", required: false },
   ],
   pre_workout: [{ role: "quick_carb", required: true }],
@@ -105,26 +113,52 @@ export const MEAL_PATTERNS: Record<MealSlot, MealComponent[]> = {
     { role: "staple", required: true },
     { role: "main_dish", required: true },
     { role: "vegetable", required: false },
+    { role: "side", required: false }, // curd / raita / buttermilk / salad — no cooking
   ],
 };
 
-/** Servings allowed per food in each role: [min, max]. Changes go in 0.5 steps. */
+/**
+ * Servings allowed per food in each role: [min, max]. Changes go in 0.5 steps.
+ * Minimums of 1 avoid portions nobody cooks or eats ("½ roti", "½ paratha", "½ × 2 dates").
+ */
 export const ROLE_SERVING_LIMITS: Record<FoodRole, [number, number]> = {
-  breakfast_main: [0.5, 3],
+  breakfast_main: [1, 2.5],
   protein_side: [0.5, 2],
-  fruit: [0.5, 2],
+  fruit: [0.5, 1.5],
   snack: [0.5, 2],
-  staple: [0.5, 4],
-  main_dish: [0.5, 2.5],
-  vegetable: [0.5, 2],
+  staple: [1, 4],
+  main_dish: [1, 2.5],
+  vegetable: [0.5, 1.5],
   side: [0.5, 2],
-  quick_carb: [0.5, 2],
-  protein_snack: [0.5, 2.5],
+  quick_carb: [1, 2],
+  protein_snack: [1, 2.5],
 };
 export const SERVING_STEP = 0.5;
+/**
+ * At or above this many kcal/day a lunch or dinner has at least 2 roti (or 1 katori rice):
+ * a grown man eating one roti per meal is not a realistic plan.
+ */
+export const STAPLE_MIN_FOR_HIGHER_CALORIES = { fromKcal: 1800, minServings: 2 };
+
+/** Roles that change in whole servings (1 roti, ½ katori rice — never "1.5 roti"). */
+export const WHOLE_SERVING_ROLES: FoodRole[] = ["staple"];
+
+/**
+ * Roles where the planner prefers protein-rich foods (most protein per kcal first).
+ * It rotates through the better half of the allowed foods, so days still vary.
+ */
+export const PROTEIN_FIRST_ROLES: FoodRole[] = ["main_dish", "breakfast_main", "protein_side", "protein_snack", "snack"];
+
+/**
+ * Cooking style (per member):
+ *  - simple:  ONE dal/curry + ONE sabzi cooked per day (and one kind of roti/rice), eaten at
+ *             both lunch and dinner. Suits people who cook for themselves. Snacks/sides need no cooking.
+ *  - variety: different dal/curry and sabzi at lunch and dinner.
+ */
+export const SHARED_DISH_ROLES_SIMPLE: FoodRole[] = ["main_dish", "vegetable", "staple"];
 
 /** Need at least this many different main dishes to avoid repeats on consecutive days. */
-export const MIN_MAIN_DISHES = 4;
+export const MIN_MAIN_DISHES = { simple: 2, variety: 4 } as const;
 export const MIN_BREAKFAST_MAINS = 2;
 
 /** Which weekdays (0 = Monday) are workout days, by workouts per week. */

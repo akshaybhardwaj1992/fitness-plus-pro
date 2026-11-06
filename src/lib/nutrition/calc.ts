@@ -70,7 +70,7 @@ export function calculateTargets(m: MemberForPlan): Targets {
   // Protein
   const [pMinPerKg, pMaxPerKg] = R.proteinGPerKg[m.goal];
   const proteinRange: [number, number] = [round(pMinPerKg * m.weight_kg), round(pMaxPerKg * m.weight_kg)];
-  let protein = round(((pMinPerKg + pMaxPerKg) / 2) * m.weight_kg);
+  let protein = round((pMinPerKg + (pMaxPerKg - pMinPerKg) * R.proteinTargetPosition) * m.weight_kg);
 
   // Carbs = remainder; keep a sensible minimum by lowering protein (never below its min)
   const carbsFor = (p: number) => (calories - p * R.kcalPerGram.protein - fat * R.kcalPerGram.fat) / R.kcalPerGram.carbs;

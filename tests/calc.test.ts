@@ -5,7 +5,7 @@ import type { MemberForPlan } from "@/lib/types";
 
 const base: MemberForPlan = {
   age: 30, sex: "male", height_cm: 180, weight_kg: 80, goal: "maintenance", activity_level: "sedentary",
-  workouts_per_week: 3, diet_type: "vegetarian", allergies: "", foods_to_avoid: "", daily_budget_inr: null,
+  workouts_per_week: 3, diet_type: "vegetarian", cooking_style: "simple", allergies: "", foods_to_avoid: "", daily_budget_inr: null,
   needs_professional_review: false,
 };
 
@@ -97,8 +97,15 @@ describe("macros", () => {
     for (const goal of ["maintenance", "general_fitness"] as const) {
       const t = calculateTargets({ ...base, goal });
       expect(t.protein_range_g).toEqual([96, 128]);
-      expect(t.protein_g).toBe(112);
+      expect(t.protein_g).toBeGreaterThanOrEqual(96);
+      expect(t.protein_g).toBeLessThanOrEqual(128);
     }
+  });
+
+  it("protein target sits at the configured point of the range (default: the minimum)", () => {
+    const t = calculateTargets({ ...base, weight_kg: 91, goal: "fat_loss", activity_level: "light" });
+    const [lo, hi] = t.protein_range_g;
+    expect(t.protein_g).toBe(Math.round(lo + (hi - lo) * NUTRITION_RULES.proteinTargetPosition));
   });
 
   it("fat 20–30% of calories, carbs are the remainder, total adds up", () => {

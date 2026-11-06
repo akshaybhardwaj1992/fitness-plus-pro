@@ -8,9 +8,6 @@ export async function saveFood(_prev: FormState, formData: FormData): Promise<Fo
   const values = typedValues(formData);
   const parsed = parseFoodForm(formData);
   if (!parsed.ok) return { errors: parsed.errors, message: "Please fix the highlighted fields.", values };
-  if (parsed.data.roles?.length === 0) {
-    return { errors: { roles: "Tick at least one meal use, or the planner will never pick this food." }, message: "Please fix the highlighted fields.", values };
-  }
 
   const id = String(formData.get("id") ?? "");
   const { error } = id

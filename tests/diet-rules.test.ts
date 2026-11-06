@@ -10,8 +10,8 @@ const byId = new Map(FOODS.map((f) => [f.id, f]));
 
 const base: MemberForPlan = {
   age: 30, sex: "male", height_cm: 175, weight_kg: 75, goal: "maintenance", activity_level: "moderate",
-  workouts_per_week: 4, diet_type: "vegetarian", allergies: "", foods_to_avoid: "", daily_budget_inr: null,
-  needs_professional_review: false,
+  workouts_per_week: 4, diet_type: "vegetarian", cooking_style: "simple", allergies: "", foods_to_avoid: "",
+  daily_budget_inr: null, needs_professional_review: false,
 };
 
 function planOf(m: MemberForPlan, foods: Food[] = FOODS): DietPlanContent {
@@ -105,10 +105,11 @@ describe("calories", () => {
         for (const goal of ["fat_loss", "muscle_gain", "maintenance", "general_fitness"] as Goal[])
           for (const activity_level of ["sedentary", "moderate", "very_active"] as const)
             for (const diet_type of ["vegan", "vegetarian", "eggetarian", "non_vegetarian"] as DietType[])
-              for (const workouts_per_week of [0, 3, 6]) {
+              for (const workouts_per_week of [0, 3, 6])
+                for (const cooking_style of ["simple", "variety"] as const) {
                 const m: MemberForPlan = {
                   ...base, sex, weight_kg, height_cm: sex === "male" ? 175 : 160, goal, activity_level, diet_type,
-                  workouts_per_week,
+                  workouts_per_week, cooking_style,
                 };
                 const r = generateDietPlan(m, FOODS);
                 expect(r.ok, `${JSON.stringify(m)} → ${r.ok ? "" : r.reasons.join(" ")}`).toBe(true);
@@ -124,8 +125,8 @@ describe("calories", () => {
                   expect(kcal).toBeGreaterThanOrEqual(NUTRITION_RULES.calorieFloor[sex]);
                 }
               }
-    expect(plans).toBe(2 * 3 * 4 * 3 * 4 * 3);
-  });
+    expect(plans).toBe(2 * 3 * 4 * 3 * 4 * 3 * 2);
+  }, 120_000);
 });
 
 describe("structure", () => {
@@ -191,11 +192,16 @@ describe("refuses instead of giving a wrong plan", () => {
     if (!r.ok) expect(r.reasons.join(" ")).toMatch(/No allowed food/);
   });
 
-  it("too few main dishes → explains why", () => {
-    const fewMains = FOODS.filter((f) => !f.roles.includes("main_dish") || /Toor|Moong dal, cooked/.test(f.name));
-    const r = generateDietPlan(base, fewMains);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reasons.join(" ")).toMatch(/main dish/);
+  it("too few main dishes → explains why (variety needs 4, simple needs 2)", () => {
+    const twoMains = FOODS.filter((f) => !f.roles.includes("main_dish") || /Toor|Moong dal, cooked/.test(f.name));
+    const variety = generateDietPlan({ ...base, cooking_style: "variety" }, twoMains);
+    expect(variety.ok).toBe(false);
+    if (!variety.ok) expect(variety.reasons.join(" ")).toMatch(/main dish/);
+
+    const oneMain = FOODS.filter((f) => !f.roles.includes("main_dish") || /Toor/.test(f.name));
+    const simple = generateDietPlan({ ...base, cooking_style: "simple" }, oneMain);
+    expect(simple.ok).toBe(false);
+    if (!simple.ok) expect(simple.reasons.join(" ")).toMatch(/main dish/);
   });
 
   it("vegan + allergic to soy, gluten and all pulses' names → refuses or stays safe", () => {
@@ -227,5 +233,83 @@ describe("plan check (used by the editor before publishing)", () => {
     p.days[0]!.meals.forEach((m) => (m.items = []));
     expect(checkDietPlan(p, base, { strict: false }).warnings.join(" ")).toMatch(/safety minimum/);
     expect(checkDietPlan(p, base, { strict: true }).errors.join(" ")).toMatch(/safety minimum/);
+  });
+});
+
+describe("simple cooking (one person cooking for themselves)", () => {
+  const cookedIds = (d: DietPlanContent["days"][number], role: "main_dish" | "vegetable") =>
+    new Set(
+      d.meals
+        .filter((m) => m.slot === "lunch" || m.slot === "dinner")
+        .flatMap((m) => m.items)
+        .filter((i) => foodOf(i).roles.includes(role) && !foodOf(i).roles.includes("side"))
+        .map((i) => i.food_id),
+    );
+
+  it("cooks at most 1 dal/curry + 1 sabzi a day, eaten at both lunch and dinner", () => {
+    for (const diet_type of ["vegan", "vegetarian", "eggetarian", "non_vegetarian"] as DietType[]) {
+      const p = planOf({ ...base, diet_type, cooking_style: "simple" });
+      for (const d of p.days) {
+        expect(cookedIds(d, "main_dish").size, `${diet_type} day ${d.day} mains`).toBe(1);
+        expect(cookedIds(d, "vegetable").size, `${diet_type} day ${d.day} sabzi`).toBeLessThanOrEqual(1);
+        const lunch = d.meals.find((m) => m.slot === "lunch")!;
+        const dinner = d.meals.find((m) => m.slot === "dinner")!;
+        const main = (m: typeof lunch) => m.items.find((i) => foodOf(i).roles.includes("main_dish"))?.food_id;
+        const staple = (m: typeof lunch) => m.items.find((i) => foodOf(i).roles.includes("staple"))?.food_id;
+        expect(main(dinner)).toBe(main(lunch));
+        expect(staple(dinner)).toBe(staple(lunch));
+      }
+    }
+  });
+
+  it("variety style may use different dishes at lunch and dinner", () => {
+    const p = planOf({ ...base, cooking_style: "variety" });
+    expect(p.days.some((d) => cookedIds(d, "main_dish").size === 2)).toBe(true);
+  });
+});
+
+describe("realistic portions", () => {
+  it("whole rotis, at least one breakfast dish and one pre-workout portion", () => {
+    for (const cooking_style of ["simple", "variety"] as const) {
+      const p = planOf({ ...base, cooking_style, weight_kg: 91, goal: "fat_loss" });
+      for (const d of p.days)
+        for (const m of d.meals)
+          for (const i of m.items) {
+            const f = foodOf(i);
+            if (f.roles.includes("staple")) expect(Number.isInteger(i.servings), i.name).toBe(true);
+            if (m.slot === "breakfast" && f.roles.includes("breakfast_main")) expect(i.servings).toBeGreaterThanOrEqual(1);
+            if (m.slot === "pre_workout") expect(i.servings).toBeGreaterThanOrEqual(1);
+          }
+    }
+  });
+});
+
+describe("protein", () => {
+  it("91 kg vegetarian, fat loss (the case from the printed plan) gets close to the protein target", () => {
+    const p = planOf({ ...base, age: 34, height_cm: 176, weight_kg: 91, goal: "fat_loss", activity_level: "light", workouts_per_week: 3 });
+    const avg = p.days.reduce((s, d) => s + dayTotal(d).protein_g, 0) / 7;
+    expect(avg).toBeGreaterThanOrEqual(p.targets!.protein_g * 0.95);
+  });
+
+  it("non-vegetarian and eggetarian plans meet the protein target on average", () => {
+    for (const diet_type of ["eggetarian", "non_vegetarian"] as DietType[])
+      for (const goal of ["fat_loss", "muscle_gain"] as Goal[]) {
+        const p = planOf({ ...base, diet_type, goal, weight_kg: 80 });
+        const avg = p.days.reduce((s, d) => s + dayTotal(d).protein_g, 0) / 7;
+        expect(avg, `${diet_type} ${goal}`).toBeGreaterThanOrEqual(p.targets!.protein_g * 0.95);
+      }
+  });
+});
+
+describe("vegetables", () => {
+  it("every day has a sabzi or salad at lunch", () => {
+    for (const cooking_style of ["simple", "variety"] as const)
+      for (const diet_type of ["vegan", "vegetarian", "non_vegetarian"] as DietType[]) {
+        const p = planOf({ ...base, cooking_style, diet_type, weight_kg: 91, goal: "fat_loss" });
+        for (const d of p.days) {
+          const lunch = d.meals.find((m) => m.slot === "lunch")!;
+          expect(lunch.items.some((i) => foodOf(i).category === "vegetables"), `${cooking_style} ${diet_type} day ${d.day}`).toBe(true);
+        }
+      }
   });
 });

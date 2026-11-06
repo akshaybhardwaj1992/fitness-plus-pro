@@ -3,15 +3,15 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { saveMember } from "./actions";
 import type { FormState } from "@/lib/form";
-import { ACTIVITY_LEVELS, DIET_TYPES, EXPERIENCES, GOALS, type Member } from "@/lib/types";
-import { ACTIVITY_LABELS, DIET_LABELS, EXPERIENCE_LABELS, GOAL_LABELS } from "@/lib/labels";
+import { ACTIVITY_LEVELS, COOKING_STYLES, DIET_TYPES, EXPERIENCES, GOALS, type Member } from "@/lib/types";
+import { ACTIVITY_LABELS, COOKING_LABELS, DIET_LABELS, EXPERIENCE_LABELS, GOAL_LABELS } from "@/lib/labels";
 import { Field, Notice, buttonClass } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 import { useRedirectOnSave } from "@/components/useRedirectOnSave";
 
 const TEXT_FIELDS = [
   "full_name", "phone", "age", "sex", "height_cm", "weight_kg", "goal", "activity_level", "workouts_per_week",
-  "experience", "diet_type", "allergies", "foods_to_avoid", "daily_budget_inr", "medical_notes",
+  "experience", "diet_type", "cooking_style", "allergies", "foods_to_avoid", "daily_budget_inr", "medical_notes",
 ] as const;
 type TextField = (typeof TEXT_FIELDS)[number];
 
@@ -94,6 +94,11 @@ export function MemberForm({ member }: { member?: Member }) {
           <select id="diet_type" name="diet_type" required defaultValue={d.diet_type} className="input">
             <option value="" disabled>Choose…</option>
             {DIET_TYPES.map((x) => <option key={x} value={x}>{DIET_LABELS[x]}</option>)}
+          </select>
+        </Field>
+        <Field label="Cooking *" name="cooking_style" error={e.cooking_style} hint="Most members who cook for themselves want Simple">
+          <select id="cooking_style" name="cooking_style" required defaultValue={d.cooking_style || "simple"} className="input">
+            {COOKING_STYLES.map((x) => <option key={x} value={x}>{COOKING_LABELS[x]}</option>)}
           </select>
         </Field>
         <Field label="Daily food budget (₹)" name="daily_budget_inr" error={e.daily_budget_inr} hint="Leave empty if no limit">

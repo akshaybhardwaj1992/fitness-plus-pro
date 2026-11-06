@@ -2,7 +2,7 @@
 // text columns hold valid values, so the casts below are safe.
 import type { Tables } from "@/lib/database.types";
 import type {
-  ActivityLevel, DietPlanContent, DietType, Exercise, Experience, Food, FoodCategory, Goal, Member, Muscle,
+  ActivityLevel, CookingStyle, DietPlanContent, DietType, Exercise, Experience, Food, FoodCategory, Goal, Member, Muscle,
   PlanRow, PlanStatus, PlanType, Sex, WeightLog, WorkoutPlanContent,
 } from "@/lib/types";
 
@@ -23,6 +23,7 @@ export function toMember(r: Tables<"members">): Member {
     workouts_per_week: r.workouts_per_week,
     experience: r.experience as Experience,
     diet_type: r.diet_type as DietType,
+    cooking_style: r.cooking_style as CookingStyle,
     allergies: r.allergies,
     foods_to_avoid: r.foods_to_avoid,
     daily_budget_inr: numOrNull(r.daily_budget_inr),

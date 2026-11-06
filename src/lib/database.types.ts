@@ -53,14 +53,14 @@ export type Database = {
                   ]
                 },"members": {
                   Row: {
-                    "activity_level": string,"age": number,"allergies": string,"created_at": string,"created_by": string | null,"daily_budget_inr": number | null,"diet_type": string,"experience": string,"foods_to_avoid": string,"full_name": string,"goal": string,"height_cm": number,"id": string,"is_active": boolean,"medical_notes": string,"needs_professional_review": boolean,"phone": string | null,"sex": string,"updated_at": string,"weight_kg": number,"workouts_per_week": number
+                    "activity_level": string,"age": number,"allergies": string,"cooking_style": string,"created_at": string,"created_by": string | null,"daily_budget_inr": number | null,"diet_type": string,"experience": string,"foods_to_avoid": string,"full_name": string,"goal": string,"height_cm": number,"id": string,"is_active": boolean,"medical_notes": string,"needs_professional_review": boolean,"phone": string | null,"sex": string,"updated_at": string,"weight_kg": number,"workouts_per_week": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "activity_level": string,"age": number,"allergies"?: string,"created_at"?: string,"created_by"?: string | null,"daily_budget_inr"?: number | null,"diet_type": string,"experience"?: string,"foods_to_avoid"?: string,"full_name": string,"goal": string,"height_cm": number,"id"?: string,"is_active"?: boolean,"medical_notes"?: string,"needs_professional_review"?: boolean,"phone"?: string | null,"sex": string,"updated_at"?: string,"weight_kg": number,"workouts_per_week"?: number
+                    "activity_level": string,"age": number,"allergies"?: string,"cooking_style"?: string,"created_at"?: string,"created_by"?: string | null,"daily_budget_inr"?: number | null,"diet_type": string,"experience"?: string,"foods_to_avoid"?: string,"full_name": string,"goal": string,"height_cm": number,"id"?: string,"is_active"?: boolean,"medical_notes"?: string,"needs_professional_review"?: boolean,"phone"?: string | null,"sex": string,"updated_at"?: string,"weight_kg": number,"workouts_per_week"?: number
                   }
                   Update: {
-                    "activity_level"?: string,"age"?: number,"allergies"?: string,"created_at"?: string,"created_by"?: string | null,"daily_budget_inr"?: number | null,"diet_type"?: string,"experience"?: string,"foods_to_avoid"?: string,"full_name"?: string,"goal"?: string,"height_cm"?: number,"id"?: string,"is_active"?: boolean,"medical_notes"?: string,"needs_professional_review"?: boolean,"phone"?: string | null,"sex"?: string,"updated_at"?: string,"weight_kg"?: number,"workouts_per_week"?: number
+                    "activity_level"?: string,"age"?: number,"allergies"?: string,"cooking_style"?: string,"created_at"?: string,"created_by"?: string | null,"daily_budget_inr"?: number | null,"diet_type"?: string,"experience"?: string,"foods_to_avoid"?: string,"full_name"?: string,"goal"?: string,"height_cm"?: number,"id"?: string,"is_active"?: boolean,"medical_notes"?: string,"needs_professional_review"?: boolean,"phone"?: string | null,"sex"?: string,"updated_at"?: string,"weight_kg"?: number,"workouts_per_week"?: number
                   }
                   Relationships: [
                     

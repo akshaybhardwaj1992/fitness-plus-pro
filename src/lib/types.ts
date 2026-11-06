@@ -5,12 +5,15 @@ export type Goal = "fat_loss" | "muscle_gain" | "maintenance" | "general_fitness
 export type ActivityLevel = "sedentary" | "light" | "moderate" | "very_active";
 export type Experience = "beginner" | "intermediate" | "advanced";
 export type DietType = "vegetarian" | "eggetarian" | "non_vegetarian" | "vegan";
+/** simple = one dal/curry + one sabzi a day, eaten at lunch and dinner; variety = different dishes. */
+export type CookingStyle = "simple" | "variety";
 
 export const SEXES: readonly Sex[] = ["male", "female"];
 export const GOALS: readonly Goal[] = ["fat_loss", "muscle_gain", "maintenance", "general_fitness"];
 export const ACTIVITY_LEVELS: readonly ActivityLevel[] = ["sedentary", "light", "moderate", "very_active"];
 export const EXPERIENCES: readonly Experience[] = ["beginner", "intermediate", "advanced"];
 export const DIET_TYPES: readonly DietType[] = ["vegetarian", "eggetarian", "non_vegetarian", "vegan"];
+export const COOKING_STYLES: readonly CookingStyle[] = ["simple", "variety"];
 
 export const FOOD_CATEGORIES = [
   "grains", "pulses", "dairy", "eggs", "meat", "fish", "soy",
@@ -47,6 +50,7 @@ export interface Member {
   workouts_per_week: number;
   experience: Experience;
   diet_type: DietType;
+  cooking_style: CookingStyle;
   allergies: string;
   foods_to_avoid: string;
   daily_budget_inr: number | null;
@@ -61,7 +65,7 @@ export interface Member {
 export type MemberForPlan = Pick<
   Member,
   | "age" | "sex" | "height_cm" | "weight_kg" | "goal" | "activity_level" | "workouts_per_week"
-  | "diet_type" | "allergies" | "foods_to_avoid" | "daily_budget_inr" | "needs_professional_review"
+  | "diet_type" | "cooking_style" | "allergies" | "foods_to_avoid" | "daily_budget_inr" | "needs_professional_review"
 >;
 
 /** A food row. Nutrient values are per ONE serving of serving_size_g grams. */

@@ -98,8 +98,11 @@ export function FoodForm({ food }: { food?: Food }) {
       </fieldset>
 
       <fieldset className="rounded-2xl border border-line bg-card p-4 sm:p-6">
-        <legend className="px-2 text-lg font-semibold">Can be used as *</legend>
-        <p className="mb-3 text-muted">Where the automatic planner may put this food.</p>
+        <legend className="px-2 text-lg font-semibold">Can be used as</legend>
+        <p className="mb-3 text-muted">
+          Where the automatic planner may put this food. Leave all unticked (e.g. whey protein) if the planner
+          should never pick it — staff can still add it to a plan by hand.
+        </p>
         {e.roles && <p className="mb-2 text-danger">{e.roles}</p>}
         <div className="grid gap-2 sm:grid-cols-2">
           {FOOD_ROLES.map((r) => (

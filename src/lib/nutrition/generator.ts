@@ -1,15 +1,18 @@
 // Deterministic 7-day diet plan generator. No AI, no randomness:
 // the same member + the same food list always give the same plan.
 import {
-  DAY_NAMES, MEAL_PATTERNS, MIN_BREAKFAST_MAINS, MIN_MAIN_DISHES, NUTRITION_RULES as R,
-  REST_DAY_SLOTS, ROLE_SERVING_LIMITS, SERVING_STEP, WORKOUT_DAY_SHARES, WORKOUT_DAY_SLOTS,
-  WORKOUT_DAYS_BY_COUNT, restDayShares,
+  DAY_NAMES, MEAL_PATTERNS, MIN_BREAKFAST_MAINS, MIN_MAIN_DISHES, NUTRITION_RULES as R, PROTEIN_FIRST_ROLES,
+  REST_DAY_SLOTS, ROLE_SERVING_LIMITS, SERVING_STEP, SHARED_DISH_ROLES_SIMPLE, STAPLE_MIN_FOR_HIGHER_CALORIES,
+  WHOLE_SERVING_ROLES, WORKOUT_DAY_SHARES,
+  WORKOUT_DAY_SLOTS, WORKOUT_DAYS_BY_COUNT, restDayShares,
 } from "./config";
 import { calculateTargets, checkAutoPlanEligibility } from "./calc";
 import {
   calorieBounds, checkDietPlan, dayCost, dayTotal, foodConflicts, foodToItem, unrecognisedAllergies,
 } from "./rules";
-import type { DietDay, DietPlanContent, Food, FoodRole, MealSlot, MemberForPlan, Targets } from "@/lib/types";
+import type {
+  CookingStyle, DietDay, DietPlanContent, Food, FoodRole, MealSlot, MemberForPlan, Targets,
+} from "@/lib/types";
 
 export type GenerateResult =
   | { ok: true; content: DietPlanContent }
@@ -56,20 +59,34 @@ function pricePer100Kcal(f: Food): number | null {
   return f.price_inr / (f.kcal / 100);
 }
 
+const proteinDensity = (f: Food) => (f.kcal > 0 ? f.protein_g / f.kcal : 0);
+
 /**
- * Candidates for a role, cheapest-fit first when a budget is set.
- * Uses only "within budget" foods when there are enough of them for variety.
+ * Candidates for a role.
+ *  1. With a budget: only "within budget" foods, when there are enough of them for variety.
+ *  2. Protein-first roles: the more protein-rich half of the foods, best first, so plans
+ *     reach the protein target (e.g. soya chunks / moong dal before dal makhani / aloo paratha).
  */
-function buildPool(foods: Food[], role: FoodRole, budget: number | null, calories: number): Food[] {
-  const all = foods.filter((f) => f.roles.includes(role));
-  if (!budget || budget <= 0) return all;
-  const limit = budget / (calories / 100); // ₹ per 100 kcal if the whole day cost exactly the budget
-  const affordable = all.filter((f) => {
-    const p = pricePer100Kcal(f);
-    return p == null || p <= limit;
-  });
-  const needed = role === "main_dish" ? MIN_MAIN_DISHES + 1 : 2;
-  return affordable.length >= needed ? affordable : all;
+function buildPool(
+  foods: Food[], role: FoodRole, budget: number | null, calories: number, style: CookingStyle,
+): Food[] {
+  const needed = role === "main_dish" ? MIN_MAIN_DISHES[style] + 1 : 2;
+  let pool = foods.filter((f) => f.roles.includes(role));
+  if (budget && budget > 0) {
+    const limit = budget / (calories / 100); // ₹ per 100 kcal if the whole day cost exactly the budget
+    const affordable = pool.filter((f) => {
+      const p = pricePer100Kcal(f);
+      return p == null || p <= limit;
+    });
+    if (affordable.length >= needed) pool = affordable;
+  }
+  if (PROTEIN_FIRST_ROLES.includes(role)) {
+    const keep = Math.max(needed + 1, Math.ceil(pool.length / 2));
+    pool = [...pool]
+      .sort((a, b) => proteinDensity(b) - proteinDensity(a) || a.name.localeCompare(b.name))
+      .slice(0, keep);
+  }
+  return pool;
 }
 
 function pick(pool: Food[], seed: number, banned: Set<string>): Food | null {
@@ -87,6 +104,10 @@ interface Slotted {
   role: FoodRole;
   food: Food;
   servings: number;
+  /** Optional parts (fruit, sides, extra protein) may be dropped (0 servings) when a day does not fit. */
+  optional: boolean;
+  /** Lowest allowed servings (role limit, raised for staples on higher-calorie plans). */
+  min: number;
 }
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -120,19 +141,26 @@ function score(items: Slotted[], targets: Targets, slotTargets: Map<MealSlot, nu
   return s;
 }
 
-const canSet = (it: Slotted, to: number) => {
-  const [lo, hi] = ROLE_SERVING_LIMITS[it.role];
-  return to >= lo && to <= hi;
-};
+const stepOf = (it: Slotted) => (WHOLE_SERVING_ROLES.includes(it.role) ? 1 : SERVING_STEP);
+
+/** The next allowed serving count up or down, or null. Optional items can go from their minimum to 0 and back. */
+function nextServing(it: Slotted, dir: 1 | -1): number | null {
+  const lo = it.min;
+  const hi = ROLE_SERVING_LIMITS[it.role][1];
+  if (it.servings === 0) return dir > 0 ? lo : null;
+  const to = it.servings + dir * stepOf(it);
+  if (to > hi) return null;
+  if (to < lo) return it.optional ? 0 : null;
+  return to;
+}
 
 /**
- * Nudge servings by ±0.5 until nothing improves the score. Tries single changes
+ * Nudge servings one step at a time until nothing improves the score. Tries single changes
  * first, then swaps (one food up, another down) — a swap lets the plan trade,
  * say, rice for dal to add protein without moving calories off target.
  */
 function tune(items: Slotted[], targets: Targets, slotTargets: Map<MealSlot, number>): void {
   let current = score(items, targets, slotTargets);
-  const deltas = [SERVING_STEP, -SERVING_STEP];
   for (let step = 0; step < MAX_SEARCH_STEPS; step++) {
     let best: { moves: [number, number][]; s: number } | null = null;
     const consider = (moves: [number, number][]) => {
@@ -144,18 +172,18 @@ function tune(items: Slotted[], targets: Targets, slotTargets: Map<MealSlot, num
     };
 
     for (let i = 0; i < items.length; i++) {
-      for (const d of deltas) {
-        const to = items[i]!.servings + d;
-        if (canSet(items[i]!, to)) consider([[i, to]]);
+      for (const dir of [1, -1] as const) {
+        const to = nextServing(items[i]!, dir);
+        if (to !== null) consider([[i, to]]);
       }
     }
     if (!best) {
       for (let i = 0; i < items.length; i++) {
-        const up = items[i]!.servings + SERVING_STEP;
-        if (!canSet(items[i]!, up)) continue;
+        const up = nextServing(items[i]!, 1);
+        if (up === null) continue;
         for (let j = 0; j < items.length; j++) {
-          const down = items[j]!.servings - SERVING_STEP;
-          if (i !== j && canSet(items[j]!, down)) consider([[i, up], [j, down]]);
+          const down = nextServing(items[j]!, -1);
+          if (i !== j && down !== null) consider([[i, up], [j, down]]);
         }
       }
     }
@@ -171,6 +199,7 @@ interface DayContext {
   attempt: number;
   pools: Map<FoodRole, Food[]>;
   targets: Targets;
+  style: CookingStyle;
   yesterdayMains: Set<string>;
   yesterdayBreakfast: Set<string>;
 }
@@ -183,30 +212,40 @@ function buildDay(ctx: DayContext): { day: DietDay; mains: Set<string>; breakfas
   const todayMains = new Set<string>();
   const todayBreakfast = new Set<string>();
   const items: Slotted[] = [];
+  // Simple cooking: the dal/curry and sabzi picked for lunch are eaten again at dinner.
+  const cookedToday = new Map<FoodRole, Food>();
+  const shareDishes = ctx.style === "simple";
 
   slots.forEach((slot, slotIdx) => {
     const inMeal = new Set<string>();
     const mealItems: Slotted[] = [];
     MEAL_PATTERNS[slot].forEach((comp, compIdx) => {
+      const shared = shareDishes && SHARED_DISH_ROLES_SIMPLE.includes(comp.role);
+      const reuse = shared ? cookedToday.get(comp.role) : undefined;
+      if (reuse && inMeal.has(reuse.id)) return; // already in this meal under another role
       const pool = ctx.pools.get(comp.role) ?? [];
       const banned = new Set(inMeal);
       if (comp.role === "main_dish") for (const id of [...ctx.yesterdayMains, ...todayMains]) banned.add(id);
       if (comp.role === "breakfast_main") for (const id of ctx.yesterdayBreakfast) banned.add(id);
       const seed = ctx.dayIndex + slotIdx * 7 + compIdx * 3 + ctx.attempt * 5;
-      const food = pick(pool, seed, banned);
+      const food = reuse ?? pick(pool, seed, banned);
+      if (food && shared) cookedToday.set(comp.role, food);
       if (!food) return; // required parts are checked below
       inMeal.add(food.id);
       if (comp.role === "main_dish") todayMains.add(food.id);
       if (comp.role === "breakfast_main") todayBreakfast.add(food.id);
-      mealItems.push({ slot, role: comp.role, food, servings: 1 });
+      const staplesUp = comp.role === "staple" && ctx.targets.calories >= STAPLE_MIN_FOR_HIGHER_CALORIES.fromKcal;
+      const min = staplesUp ? STAPLE_MIN_FOR_HIGHER_CALORIES.minServings : ROLE_SERVING_LIMITS[comp.role][0];
+      mealItems.push({ slot, role: comp.role, food, servings: 1, optional: !comp.required, min });
     });
 
     // Starting quantities: scale the whole meal toward its calorie share.
     const base = mealItems.reduce((s, it) => s + it.food.kcal, 0);
     const factor = base > 0 ? (slotTargets.get(slot) ?? 0) / base : 1;
     for (const it of mealItems) {
-      const [lo, hi] = ROLE_SERVING_LIMITS[it.role];
-      it.servings = clamp(roundStep(factor), lo, hi);
+      const lo = it.min;
+      const hi = ROLE_SERVING_LIMITS[it.role][1];
+      it.servings = clamp(WHOLE_SERVING_ROLES.includes(it.role) ? Math.round(factor) : roundStep(factor), lo, hi);
     }
     items.push(...mealItems);
   });
@@ -229,7 +268,7 @@ function buildDay(ctx: DayContext): { day: DietDay; mains: Set<string>; breakfas
     is_workout_day: ctx.isWorkoutDay,
     meals: slots.map((slot) => ({
       slot,
-      items: items.filter((it) => it.slot === slot).map((it) => foodToItem(it.food, it.servings)),
+      items: items.filter((it) => it.slot === slot && it.servings > 0).map((it) => foodToItem(it.food, it.servings)),
     })),
   };
   return { day, mains: todayMains, breakfast: todayBreakfast };
@@ -246,6 +285,8 @@ export function generateDietPlan(member: MemberForPlan, allFoods: Food[]): Gener
     .filter((f) => f.is_active && f.kcal > 0 && foodConflicts(f, member).length === 0)
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const style: CookingStyle = member.cooking_style ?? "simple";
+  const minMains = MIN_MAIN_DISHES[style];
   const workoutDays = workoutDaySet(member.workouts_per_week);
   const slotsUsed = new Set<MealSlot>(workoutDays.size > 0 ? WORKOUT_DAY_SLOTS : REST_DAY_SLOTS);
 
@@ -253,7 +294,7 @@ export function generateDietPlan(member: MemberForPlan, allFoods: Food[]): Gener
   for (const slot of slotsUsed) {
     for (const comp of MEAL_PATTERNS[slot]) {
       if (!pools.has(comp.role)) {
-        pools.set(comp.role, buildPool(usable, comp.role, member.daily_budget_inr, targets.calories));
+        pools.set(comp.role, buildPool(usable, comp.role, member.daily_budget_inr, targets.calories, style));
       }
     }
   }
@@ -271,9 +312,9 @@ export function generateDietPlan(member: MemberForPlan, allFoods: Food[]): Gener
     reasons.push(`No allowed food for “${ROLE_LABELS[role]}”. Add one in the Food list that suits this member.`);
   }
   const mains = pools.get("main_dish")?.length ?? 0;
-  if (!missing.has("main_dish") && mains < MIN_MAIN_DISHES) {
+  if (!missing.has("main_dish") && mains < minMains) {
     reasons.push(
-      `Only ${mains} main dish(es) fit this member; at least ${MIN_MAIN_DISHES} are needed so dishes don't repeat on back-to-back days.`,
+      `Only ${mains} main dish(es) fit this member; at least ${minMains} are needed so dishes don't repeat on back-to-back days.`,
     );
   }
   const breakfasts = pools.get("breakfast_main")?.length ?? 0;
@@ -295,7 +336,7 @@ export function generateDietPlan(member: MemberForPlan, allFoods: Food[]): Gener
     let built: ReturnType<typeof buildDay> = null;
     for (let attempt = 0; attempt < MAX_ATTEMPTS && !built; attempt++) {
       built = buildDay({
-        dayIndex: d, isWorkoutDay: workoutDays.has(d), attempt, pools, targets, yesterdayMains, yesterdayBreakfast,
+        dayIndex: d, isWorkoutDay: workoutDays.has(d), attempt, pools, targets, style, yesterdayMains, yesterdayBreakfast,
       });
     }
     if (!built) {
@@ -320,7 +361,8 @@ export function generateDietPlan(member: MemberForPlan, allFoods: Food[]): Gener
   const avgProtein = days.reduce((s, d) => s + dayTotal(d).protein_g, 0) / days.length;
   if (avgProtein < targets.protein_range_g[0]) {
     warnings.push(
-      `Average protein is ${Math.round(avgProtein)} g/day, below the ${targets.protein_range_g[0]} g minimum. Trainer may add a protein-rich food.`,
+      `Average protein is ${Math.round(avgProtein)} g/day, below the ${targets.protein_range_g[0]} g minimum. ` +
+        "Add a protein food by hand (e.g. low-fat paneer, soya chunks, curd), or 1 scoop of whey if the trainer recommends it.",
     );
   }
   if (member.daily_budget_inr && member.daily_budget_inr > 0) {

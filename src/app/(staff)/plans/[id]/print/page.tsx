@@ -4,7 +4,7 @@ import { getStaff } from "@/lib/auth";
 import { asDietContent, asWorkoutContent, toMember, toPlan } from "@/lib/data";
 import { DAY_NAMES, SLOT_LABELS } from "@/lib/nutrition/config";
 import { dayTotal, itemNutrients } from "@/lib/nutrition/rules";
-import { DIET_LABELS, GOAL_LABELS, fmt, fmtDate } from "@/lib/labels";
+import { DIET_LABELS, GOAL_LABELS, fmt, fmtDate, fmtPortion } from "@/lib/labels";
 import type { DietPlanContent, Member, WorkoutPlanContent } from "@/lib/types";
 import { Notice, buttonClass } from "@/components/ui";
 import { PrintButton } from "./PrintButton";
@@ -88,8 +88,7 @@ function DietPrint({ content, member }: { content: DietPlanContent; member: Memb
                       {m.items.map((it, i) => (
                         <span key={i}>
                           {i > 0 && " + "}
-                          {it.name} — {it.servings === 1 ? "" : `${fmt(it.servings, 2)} × `}
-                          {it.serving_desc || `${it.serving_size_g} g`}
+                          {it.name} — {fmtPortion(it.servings, it.serving_desc, it.serving_size_g)}
                         </span>
                       ))}
                     </td>

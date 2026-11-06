@@ -11,6 +11,7 @@ const form = (o: Record<string, string | string[]>) => {
 const goodMember = {
   full_name: "Asha Rao", phone: "+91 98765 43210", age: "28", sex: "female", height_cm: "160", weight_kg: "62.5",
   goal: "fat_loss", activity_level: "light", workouts_per_week: "4", experience: "beginner", diet_type: "vegetarian",
+  cooking_style: "simple",
   allergies: "peanuts", foods_to_avoid: "", daily_budget_inr: "", medical_notes: "",
 };
 

@@ -51,11 +51,11 @@ export const SEED_FOODS: SeedFood[] = [
   f("Roti (whole wheat, no ghee)", "grains", "vegan", 40, "1 medium roti", [264, 8.9, 50, 2.5, 7], ["staple"], ["gluten"], 4, RECIPE),
   f("Rice, white, cooked", "grains", "vegan", 100, "½ katori (100 g cooked)", [130, 2.7, 28.2, 0.3, 0.4], ["staple"], [], 3, USDA),
   f("Brown rice, cooked", "grains", "vegan", 100, "½ katori (100 g cooked)", [123, 2.7, 25.6, 1, 1.6], ["staple"], [], 5, USDA),
-  f("Whole wheat bread", "grains", "vegan", 50, "2 slices", [252, 12.4, 42.7, 3.5, 6], ["staple", "quick_carb"], ["gluten"], 6, USDA),
+  f("Whole wheat bread", "grains", "vegan", 50, "2 slices", [252, 12.4, 42.7, 3.5, 6], ["quick_carb"], ["gluten"], 6, USDA),
   f("Jowar roti", "grains", "vegan", 50, "1 roti", [239, 7, 47, 2.5, 5.5], ["staple"], [], 5, RECIPE),
   f("Bajra roti", "grains", "vegan", 50, "1 roti", [256, 7.5, 47, 4.5, 6], ["staple"], [], 5, RECIPE),
-  f("Vegetable pulao", "grains", "vegan", 100, "½ katori", [150, 3, 25, 4, 1.5], ["staple"], [], 8, RECIPE),
-  f("Moong dal khichdi", "grains", "vegan", 150, "1 katori", [120, 4.5, 20, 2.5, 2], ["staple", "main_dish"], [], 10, RECIPE),
+  f("Vegetable pulao", "grains", "vegan", 100, "½ katori", [150, 3, 25, 4, 1.5], [], [], 8, RECIPE),
+  f("Moong dal khichdi", "grains", "vegan", 150, "1 katori", [120, 4.5, 20, 2.5, 2], ["main_dish"], [], 10, RECIPE),
 
   // ---------------- breakfast dishes
   f("Oats, cooked in water", "breakfast", "vegan", 200, "1 bowl (40 g dry oats)", [71, 2.5, 12, 1.5, 1.7], ["breakfast_main"], ["gluten"], 8, USDA),
@@ -101,6 +101,9 @@ export const SEED_FOODS: SeedFood[] = [
   f("Curd (dahi)", "dairy", "vegetarian", 150, "1 katori", [60, 3.5, 4.5, 3.1, 0], ["side", "protein_side", "protein_snack"], ["milk"], 12, IFCT),
   f("Greek yogurt, plain, low fat", "dairy", "vegetarian", 100, "1 small cup", [59, 10.2, 3.6, 0.4, 0], ["protein_side", "protein_snack"], ["milk"], 40, USDA),
   f("Paneer", "dairy", "vegetarian", 50, "50 g (about 4 cubes)", [265, 18.3, 1.2, 20.8, 0], ["protein_side", "protein_snack"], ["milk"], 22, IFCT),
+  f("Paneer, low fat", "dairy", "vegetarian", 50, "50 g (about 4 cubes)", [200, 24, 5, 9.5, 0], ["protein_side", "protein_snack"], ["milk"], 25, RECIPE),
+  f("Paneer bhurji", "dairy", "vegetarian", 150, "1 katori", [190, 13, 6, 12.5, 1.5], ["main_dish"], ["milk"], 45, RECIPE),
+  f("Whey protein, 1 scoop in water", "dairy", "vegetarian", 30, "1 scoop (30 g)", [400, 78, 10, 5.5, 0], [], ["milk"], 60, "Typical label (check your brand)"),
   f("Palak paneer", "dairy", "vegetarian", 150, "1 katori", [150, 7, 6, 11, 2], ["main_dish"], ["milk"], 35, RECIPE),
   f("Paneer tikka", "dairy", "vegetarian", 100, "5-6 pieces", [220, 15, 6, 15, 1], ["main_dish"], ["milk"], 45, RECIPE),
   f("Buttermilk (chaas)", "beverages", "vegetarian", 250, "1 glass", [25, 1.5, 2.5, 1, 0], ["side"], ["milk"], 5, RECIPE),
@@ -157,6 +160,7 @@ export const SEED_FOODS: SeedFood[] = [
   f("Walnuts", "nuts_seeds", "vegan", 15, "4-5 halves", [654, 15, 14, 65, 6.7], ["snack"], ["tree_nut"], 25, USDA),
   f("Cashews", "nuts_seeds", "vegan", 20, "about 12 cashews", [553, 18, 30, 44, 3.3], ["snack"], ["tree_nut"], 20, USDA),
   f("Pumpkin seeds", "nuts_seeds", "vegan", 15, "1 tablespoon", [559, 30, 11, 49, 6], ["snack"], [], 12, USDA),
+  f("Soybean, dry roasted", "soy", "vegan", 25, "1 small handful", [449, 39.6, 32.7, 21.6, 8.1], ["snack", "protein_snack"], ["soy"], 8, USDA),
   f("Makhana (roasted, plain)", "snacks", "vegan", 20, "1 bowl", [350, 9.7, 77, 0.1, 14.5], ["snack"], [], 10, IFCT),
 
   // ---------------- beverages / other
