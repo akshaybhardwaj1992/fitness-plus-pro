@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #15181b;       /* page background — dark charcoal */
-  --color-card: #1f2428;      /* cards */
-  --color-raised: #2a3035;    /* inputs, hover */
-  --color-line: #353c42;      /* borders */
+  --color-ink: #0f1113;       /* page background — deep dark */
+  --color-card: #1a1d20;      /* cards */
+  --color-raised: #252a2e;    /* inputs, hover */
+  --color-line: #333a40;      /* borders */
   --color-muted: #a7b0b7;     /* secondary text */
-  --color-brand: #2fd16f;     /* fresh green accent */
-  --color-brand-dark: #1fa956;
+  --color-brand: #e02020;     /* Fitness+ red */
+  --color-brand-dark: #b81414;
   --color-danger: #f26b6b;
   --color-warn: #f5b84a;
   --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;

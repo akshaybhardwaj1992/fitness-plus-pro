@@ -5,7 +5,7 @@ import { DIET_LABELS, GOAL_LABELS } from "@/lib/labels";
 import { Badge, EmptyState, LinkButton, Notice, PageHeader, buttonClass } from "@/components/ui";
 import { ExportMenu } from "./ExportMenu";
 
-export const metadata = { title: "Members — Gym Planner" };
+export const metadata = { title: "Members — Fitness+ Gym" };
 
 export default async function MembersPage({
   searchParams,
